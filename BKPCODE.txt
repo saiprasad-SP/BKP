@@ -1193,3 +1193,274 @@ const Sessions = () => {
   );
 };
 export default Sessions;
+*********************************************************************Pagination Code**************************************************************
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Card,
+  CardActions,
+  CardContent,
+  Collapse,
+  Button,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  Pagination,
+  Stack,
+} from "@mui/material";
+import Header from "components/Header";
+import { useGetSessionsQuery,useSessionsMutation } from "state/api";
+import DatePicker from "react-datepicker";
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined';
+import VideocamOffOutlinedIcon from '@mui/icons-material/VideocamOffOutlined';
+import "react-datepicker/dist/react-datepicker.css";
+import {InfinitySpin } from "react-loader-spinner";
+import { Doughnut, Pie } from 'react-chartjs-2'
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { date } from "yup";
+
+const Product = ({_id,depositionOf,statusID,classType,meeting_required,role,started,finished,totalUsers,Members,Witness,TemporaryWitness,
+  WitnessMember,Guest,ID}) => {
+  const theme = useTheme();
+  const [isExpanded, setIsExpanded] = useState(false);
+  function getBackgroundColor(value) {
+    if (value === 'Deposition') {
+      return '#62CDFF'
+    }
+    else if (value === 'Arbitration') {
+      return '#97DEFF'
+    } else if (value === 'WitnessPrep') {
+      return '#ADA2FF'
+    }else if (value === 'Mediation') {
+      return '#E74646'
+    }else{
+      return '#C9EEFF'
+    }
+  }
+  ChartJS.register(ArcElement, Tooltip, Legend);
+  const data = {
+    labels: ['M', 'W', 'TW', 'W', 'G'],
+    datasets: [
+      {
+        label: [],
+        data: [Members, Witness, TemporaryWitness, WitnessMember, Guest],
+        backgroundColor: [
+          '#8294C4',
+          '#ACB1D6',
+          '#DBDFEA',
+          '#FFEAD2',
+          '#E76161',
+        ],
+        borderColor: [
+          '#8294C4',
+          '#ACB1D6',
+          '#DBDFEA',
+          '#FFEAD2',
+          '#E76161',
+        ],
+        skipNull:true
+        // borderWidth: (a, b, c) => (a.datasets.data[a.dataIndex] === 0 ? 0 : 1)
+      },
+    ],
+  };
+  const options = {
+    plugins: {
+      tooltips: {
+        yAlign: "bottom"
+      },legend: {
+        position: 'right',
+        labels: {
+          usePointStyle: true,
+        },
+      },
+      // datalabels: {
+      //   display: false,
+      //   color: "black",
+      //   formatter: Math.round,
+      //   anchor: "end",
+      //   offset: -20,
+      //   align: "start"
+      // }
+    },
+    legend: {
+      display: true
+    }
+  };
+  return (
+    <Card
+      sx={{
+        backgroundImage: "none",
+        backgroundColor: theme.palette.background.alt,
+        borderRadius: "0.55rem",
+      }}
+    >
+      <CardContent>
+        <Box sx={{ mb: "1.5rem" }}   display="flex" justifyContent="space-between" >
+          <Typography style={{'color':getBackgroundColor(classType)}} variant="h4" component="div">{depositionOf}</Typography>
+         {meeting_required === "1"? <VideocamOutlinedIcon sx={{color:"red"}}/>: <VideocamOffOutlinedIcon sx={{color:"red"}}/>}
+        </Box>
+        <Box color={theme.palette.primary[100]} display="flex"  justifyContent="space-between" alignItems="center">
+          <Stack >
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>{ID}</Typography>
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>{classType}</Typography>
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>Users:{totalUsers}</Typography>
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>{statusID}</Typography>         
+          </Stack>
+          <Box style={{width:200,height:'200px',}}>
+            <Pie data={data}  options={options}/>
+          </Box>
+        </Box>
+      </CardContent>
+      <CardActions >
+        <Button
+          variant="primary"
+          size="small"
+          onClick={() => setIsExpanded(!isExpanded)}
+          color={theme.palette.primary[100]}
+        >
+          See More
+        </Button>
+      </CardActions>
+      <Collapse
+        in={isExpanded}
+        timeout="auto"
+        unmountOnExit
+        sx={{
+          color: theme.palette.neutral[300],
+        }}
+      >
+        <CardContent >
+          {/* <Typography color={theme.palette.primary[400]}>
+            Role: {role}
+          </Typography> */}
+          <Typography color={theme.palette.primary[100]}>
+            Started: {started}
+          </Typography>
+          <Typography color={theme.palette.primary[100]}>
+            Finished: {finished}
+          </Typography>
+        </CardContent>
+      </Collapse>
+    </Card>
+  );
+};
+const Sessions = () => {
+  const isNonMobile = useMediaQuery("(min-width: 1000px)");
+  const currentDate = new Date()
+  currentDate.setDate(currentDate.getDate()-2)
+  let dateString = currentDate.toISOString().split('T')[0]
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(dateString));
+  const { data } = useGetSessionsQuery();
+  const userPerPage = 10
+  const count = Math.ceil(data.length/userPerPage)
+  const [pageNumber,setPageNumer] = useState(1)
+  const pagesVisited = (pageNumber-1) *userPerPage
+  const displayUsers = data.slice(pagesVisited, pagesVisited+userPerPage).map(({
+    _id,
+    depositionOf,
+    statusID,
+    classType,
+    meeting_required,
+    role,
+    started,
+    finished,
+    totalUsers,
+    Members,
+    Witness,
+    TemporaryWitness,
+    WitnessMember,
+    Guest,
+    ID
+  })=>(
+    <Product
+    key={_id}
+    depositionOf={depositionOf}
+    statusID={statusID}
+    classType={classType}
+    meeting_required={meeting_required}
+    role={role}
+    started={started}
+    finished={finished}
+    totalUsers={totalUsers}                
+    Members={Members}                
+    Witness={Witness}                
+    TemporaryWitness={TemporaryWitness}                
+    WitnessMember={WitnessMember}                
+    Guest={Guest}                
+    ID={ID}                
+    />
+  ))
+  const handleChange = (event, value) => {
+    setPageNumer(value);
+  };  
+  useEffect(() => {
+    window.onbeforeunload = function () {return false}
+    }, []);
+  const handleSubmit=(date)=>{
+    setEndDate(date)
+    // const fromDate = startDate.toISOString().split("T")[0];
+    // const toDate = endDate.toISOString().split("T")[0];
+    // sessions({fromDate,toDate}).then(result=>setSessionData(result.data))
+  }
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box display="flex" justifyContent="space-between">
+        <Header title="SESSIONS" subtitle="See your list of Sessions." />
+        <Box display="flex" justifyContent="flex-end">
+            <Box>
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+                />
+            </Box>
+            <Box>
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => handleSubmit(date)}
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                // minDate={startDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+              />
+            </Box>
+            {/* <button onClick={handleSubmit}>Click</button> */}
+          </Box>
+
+      </Box>
+      {data ? (
+        <Box>
+        <Box
+          mt="20px"
+          display="grid"
+          gridTemplateColumns="repeat(4, minmax(0, 1fr))"
+          justifyContent="space-between"
+          rowGap="20px"
+          columnGap="1.33%"
+          sx={{
+            "& > div": { gridColumn: isNonMobile ? undefined : "span 4" },
+          }}
+        >
+          {displayUsers}
+          <Pagination count={count} onChange={handleChange}/>
+        </Box>
+        </Box>
+      ) : (
+        // <>Loading...</>
+        <Box textAlign="center" justifySelf="center"><InfinitySpin 
+        width='400'
+        color="#4fa94d"
+      /></Box>
+      )}
+    </Box>
+  );
+};
+export default Sessions;
