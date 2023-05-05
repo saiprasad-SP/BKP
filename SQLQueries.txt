@@ -1,0 +1,48 @@
+
+select d.ID, d.depositionOf, (IF (d.statusID > 'F' THEN SET STATUSID = 'Completed' ELSEIF d.statusID = 'I' THEN SET STATUSID = 'In Progress' ELSE SET STATUSID = 'Scheduled') as STATUSID, d.class as classType, d.meeting_required, da.ID as attendeeID,da.userID,da.role, da.name,da.email as attendeeEmail,u.email as memberEmail,u.clientID,das.userID as isAssistant,cm.userID as isManager,(u.ID=d.createdBy) AS isOwner, d.started, d.finished from DepositionAttendees da left join Users u on u.ID=da.userID left join DepositionAssistants das on da.userID=das.userID AND das.depositionID=da.depositionID inner join Depositions d on d.ID=da.depositionID left join CaseManagers cm on cm.userID=da.userID AND cm.caseID=d.caseID where da.depositionID IN (SELECT ID FROM ed_sandboxdb.Depositions where started between '2000-01-01 00:00:00' and '2023-04-04 23:59:00')
+
+*******************************************************************SQL Queries***********************************************
+select d.ID, d.depositionOf,d.class as classType, d.meeting_required, d.createdBy AS isOwner, d.started, d.finished,
+(
+    CASE 
+        WHEN d.statusID = 'F' THEN 'Finshed'
+        WHEN d.statusID = 'I' THEN 'InProgress'
+        WHEN d.statusID = 'N' THEN 'Scheduled'
+        ELSE 'NOTFOUND'
+    END) AS STATUSID
+ from  Depositions d;
+ 
+ 
+ 
+
+select d.ID, d.depositionOf,
+(
+    CASE 
+        WHEN d.statusID = 'F' THEN 'Finshed'
+        WHEN d.statusID = 'I' THEN 'InProgress'
+        WHEN d.statusID = 'N' THEN 'Scheduled'
+        ELSE 'NOTFOUND'
+    END) AS STATUSID
+ , d.class as classType, d.meeting_required, da.ID as attendeeID,da.userID,da.role, da.name,da.email as attendeeEmail,u.email as memberEmail,u.clientID,das.userID as isAssistant,cm.userID as isManager,(u.ID=d.createdBy) AS isOwner, d.started, d.finished from DepositionAttendees da left join Users u on u.ID=da.userID left join DepositionAssistants das on da.userID=das.userID AND das.depositionID=da.depositionID inner join Depositions d on d.ID=da.depositionID left join CaseManagers cm on cm.userID=da.userID AND cm.caseID=d.caseID where da.depositionID IN (SELECT ID FROM ed_sandboxdb.Depositions where started between '2000-01-01 00:00:00' and '2023-04-04 23:59:00');
+ 
+********************************************************************************************DepositionAttendees*******************************************************
+SELECT distinct(role) FROM ed_sandboxdb.DepositionAttendees;
+select count( role) from ed_sandboxdb.DepositionAttendees where depositionID = 2233;
+
+select d.ID, d.depositionOf,d.class as classType, d.meeting_required,d.created ,d.createdBy AS isOwner, d.started,da.role, d.finished,(CASE WHEN d.statusID = 'F' THEN 'Finshed'WHEN d.statusID = 'I' THEN 'InProgress' WHEN d.statusID = 'N'THEN 'Scheduled' ELSE 'NOTFOUND' END) AS statusID from  Depositions d INNER JOIN DepositionAttendees AS da 
+   ON d.ID = da.depositionID  ORDER BY created desc;
+
+SELECT t.ID, t.depositionOf, t.class as classType,t.created as isOwner,t.started,t.finished, tr.role, t.createdBy ,t.meeting_required
+  FROM Depositions AS t 
+   INNER JOIN DepositionAttendees AS tr 
+   ON t.ID = tr.depositionID group by t.ID;
+  
+SELECT t.ID, t.depositionOf, t.class as classType,t.created as isOwner,t.started,t.finished, Count(tr.role) as role_count, t.createdBy ,t.meeting_required
+FROM Depositions AS t 
+inner JOIN DepositionAttendees AS tr
+ON t.Id = tr.depositionID order by created desc;
+       
+select * from ed_sandboxdb.DepositionAttendees order by depositionID;
+select d.ID, d.depositionOf,d.class as classType, if(d.meeting_required = "1" ,"VideocamOutlinedIcon","VideocamOffOutlinedIcon") as meeting_type,d.created ,d.createdBy AS isOwner, d.started,da.role, d.finished,(CASE WHEN d.statusID = 'F' THEN 'Finshed'WHEN d.statusID = 'I' THEN 'InProgress' WHEN d.statusID = 'N'THEN 'Scheduled' ELSE 'NOTFOUND' END) AS statusID from  Depositions d INNER JOIN DepositionAttendees AS da 
+   ON d.ID = da.depositionID  ORDER BY created desc;
+********************************************************************

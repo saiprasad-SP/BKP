@@ -1,0 +1,1195 @@
+export const getParsedLogs = async (req, res) => {
+  let filesMatched = [];
+  try {
+    const parsedlogs = await ParsedLog.find();
+    // parsedlogs.map((item)=>{
+    //   const sliced = item.eventtimestamp.slice(0,10)
+    //   if (sliced >= "2022-01-01" && sliced  <="2022-01-02") {
+    //     // console.log(item);
+    //     filesMatched.push(item)
+    //   }
+    // })
+    Object.values(parsedlogs).forEach((item)=>{
+      // console.log("********",item);
+       const sliced = item.eventtimestamp.slice(0,10)
+       if (sliced >= "2022-01-01" && sliced  <="2022-01-02") {
+        filesMatched.push(item)
+      }
+    })
+    console.log("data from Arry",filesMatched);
+    res.status(200).json(filesMatched);
+    // res.status(200).json(parsedlogs);
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
+const authorizationTokens = useMemo(()=>({state, AuthReset,LoginAction}),[state, AuthReset,LoginAction])
+
+<AuthContext.Provider  value={authorizationTokens}>{children}</AuthContext.Provider>
+============================================================================================================Daily=======================================================================
+import React, { useMemo, useState } from "react";
+import { Box, useTheme } from "@mui/material";
+import Header from "components/Header";
+import { ResponsiveLine } from "@nivo/line";
+import { useGetSalesQuery } from "state/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+const Daily = () => {
+  const currentDate = new Date()
+  currentDate.setDate(currentDate.getDate()-30)
+  let dateString = currentDate.toISOString().split('T')[0]
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(dateString));
+  const { data } = useGetSalesQuery();
+  const theme = useTheme();
+  const [formattedData] = useMemo(() => {
+    if (!data) return [];
+    const { dailyData } = data;
+    const totalSalesLine = {
+      id: "totalSessions",
+      color: theme.palette.secondary.main,
+      data: [],
+    };
+    const totalUnitsLine = {
+      id: "totalUsers",
+      color: theme.palette.secondary[600],
+      data: [],
+    };
+
+    Object.values(dailyData).forEach(({ date, totalSessions, totalUsers }) => {
+      const dateFormatted = new Date(date);
+      if (dateFormatted <= startDate && dateFormatted >= endDate) {
+        const splitDate = date.substring(date.indexOf("-") + 1);
+        totalSalesLine.data = [
+          ...totalSalesLine.data,
+          { x: splitDate, y: totalSessions },
+        ];
+        totalUnitsLine.data = [
+          ...totalUnitsLine.data,
+          { x: splitDate, y: totalUsers },
+        ];
+      }
+    });
+    const formattedData = [totalSalesLine, totalUnitsLine];
+    return [formattedData];
+  }, [data, startDate, endDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box height="75vh">
+        <Box display="flex" justifyContent="space-between">
+          <Header title="DAILY SALES" subtitle="Chart of daily sales" />
+          <Box display="flex" justifyContent="flex-end">
+            <Box>
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => setEndDate(date)}
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                // minDate={startDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+              />
+            </Box>
+            <Box>
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+                />
+            </Box>
+          </Box>
+        </Box>
+        {data ? (
+          <ResponsiveLine
+            data={formattedData}
+            theme={{
+              axis: {
+                domain: {
+                  line: {
+                    stroke: theme.palette.secondary[200],
+                  },
+                },
+                legend: {
+                  text: {
+                    fill: theme.palette.secondary[200],
+                  },
+                },
+                ticks: {
+                  line: {
+                    stroke: theme.palette.secondary[200],
+                    strokeWidth: 1,
+                  },
+                  text: {
+                    fill: theme.palette.secondary[200],
+                  },
+                },
+              },
+              legends: {
+                text: {
+                  fill: theme.palette.secondary[200],
+                },
+              },
+              tooltip: {
+                container: {
+                  color: theme.palette.primary.main,
+                },
+              },
+            }}
+            colors={{ datum: "color" }}
+            margin={{ top: 50, right: 50, bottom: 70, left: 60 }}
+            xScale={{ type: "point" }}
+            yScale={{
+              type: "linear",
+              min: "auto",
+              max: "auto",
+              stacked: false,
+              reverse: false,
+            }}
+            yFormat=" >-.2f"
+            curve="catmullRom"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              orient: "bottom",
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 90,
+              legend: "Month",
+              legendOffset: 60,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              orient: "left",
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 0,
+              legend: "Total",
+              legendOffset: -50,
+              legendPosition: "middle",
+            }}
+            enableGridX={false}
+            enableGridY={false}
+            pointSize={10}
+            pointColor={{ theme: "background" }}
+            pointBorderWidth={2}
+            pointBorderColor={{ from: "serieColor" }}
+            pointLabelYOffset={-12}
+            useMesh={true}
+            legends={[
+              {
+                anchor: "top-right",
+                direction: "column",
+                justify: false,
+                translateX: 50,
+                translateY: 0,
+                itemsSpacing: 0,
+                itemDirection: "left-to-right",
+                itemWidth: 80,
+                itemHeight: 20,
+                itemOpacity: 0.75,
+                symbolSize: 12,
+                symbolShape: "circle",
+                symbolBorderColor: "rgba(0, 0, 0, .5)",
+                effects: [
+                  {
+                    on: "hover",
+                    style: {
+                      itemBackground: "rgba(0, 0, 0, .03)",
+                      itemOpacity: 1,
+                    },
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : (
+          <>Loading...</>
+        )}
+      </Box>
+    </Box>
+  );
+};
+export default Daily;
+=====================================================================================OverView=====================================
+import React, { useState } from "react";
+import { FormControl, MenuItem, InputLabel, Box, Select } from "@mui/material";
+import Header from "components/Header";
+import OverviewChart from "components/OverviewChart";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+const Overview = () => {
+  const [view, setView] = useState("users");
+  const [startDate, setStartDate] = useState(new Date());
+  const fullYear = startDate.getFullYear();
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box display="flex" justifyContent="space-between">
+        <Header
+          title="OVERVIEW"
+          subtitle="Overview of general sessions and users"
+        />
+        <Box justifyContent="flex-end">
+          <DatePicker
+            selected={startDate}
+            onChange={(date) => setStartDate(date)}
+            showYearPicker
+            dateFormat="yyyy"
+            yearItemNumber={8}
+            onKeyDown={(event)=>event.preventDefault()}
+          />
+        </Box>
+      </Box>
+      <Box height="75vh">
+        <FormControl sx={{ mt: "1rem" }}>
+          <InputLabel>View</InputLabel>
+          <Select
+            value={view}
+            label="View"
+            onChange={(e) => setView(e.target.value)}
+          >
+            <MenuItem value="sessions">Sessions</MenuItem>
+            <MenuItem value="users">Users</MenuItem>
+          </Select>
+        </FormControl>
+        <OverviewChart view={view} fullYear={fullYear}/>
+      </Box>
+    </Box>
+  );
+};
+export default Overview;
+===============================================================================Monthly======================================================
+import React, { useMemo, useState } from "react";
+import { Box, useTheme } from "@mui/material";
+import Header from "components/Header";
+import { ResponsiveLine } from "@nivo/line";
+import { useGetSalesQuery } from "state/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+const Monthly = () => {
+  const [startDate, setStartDate] = useState(new Date());
+  const fullYear = startDate.getFullYear();
+  const { data } = useGetSalesQuery();
+  const theme = useTheme();
+  const [formattedData] = useMemo(() => {
+    if (!data) return [];
+    const { monthlyData } = data;
+    const totalSalesLine = {
+      id: "totalSessions",
+      color: theme.palette.secondary.main,
+      data: [],
+    };
+    const totalUnitsLine = {
+      id: "totalUsers",
+      color: theme.palette.secondary[600],
+      data: [],
+    };
+
+    Object.values(monthlyData).forEach(({ month, totalSessions, totalUsers,year }) => {
+      if (year ===fullYear) {
+        totalSalesLine.data = [
+          ...totalSalesLine.data,
+          { x: month, y: totalSessions },
+        ];
+        totalUnitsLine.data = [
+          ...totalUnitsLine.data,
+          { x: month, y: totalUsers },
+        ];        
+      }
+    });
+    const formattedData = [totalSalesLine, totalUnitsLine];
+    return [formattedData];
+  }, [data,fullYear]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box display="flex" justifyContent="space-between">
+        <Header title="MONTHLY SALES" subtitle="Chart of monthlysales" />
+        <Box justifyContent="flex-end">
+          <DatePicker
+            selected={startDate}
+            onChange={(date) => setStartDate(date)}
+            showYearPicker
+            dateFormat="yyyy"
+            yearItemNumber={8}
+            onKeyDown={(event)=>event.preventDefault()}
+          />
+        </Box>
+      </Box>
+      <Box height="75vh">
+        {data ? (
+          <ResponsiveLine
+            data={formattedData}
+            theme={{
+              axis: {
+                domain: {
+                  line: {
+                    stroke: theme.palette.secondary[200],
+                  },
+                },
+                legend: {
+                  text: {
+                    fill: theme.palette.secondary[200],
+                  },
+                },
+                ticks: {
+                  line: {
+                    stroke: theme.palette.secondary[200],
+                    strokeWidth: 1,
+                  },
+                  text: {
+                    fill: theme.palette.secondary[200],
+                  },
+                },
+              },
+              legends: {
+                text: {
+                  fill: theme.palette.secondary[200],
+                },
+              },
+              tooltip: {
+                container: {
+                  color: theme.palette.primary.main,
+                },
+              },
+            }}
+            colors={{ datum: "color" }}
+            margin={{ top: 50, right: 50, bottom: 70, left: 60 }}
+            xScale={{ type: "point" }}
+            yScale={{
+              type: "linear",
+              min: "auto",
+              max: "auto",
+              stacked: false,
+              reverse: false,
+            }}
+            yFormat=" >-.2f"
+            // curve="catmullRom"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              orient: "bottom",
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 90,
+              legend: "Month",
+              legendOffset: 60,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              orient: "left",
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 0,
+              legend: "Total",
+              legendOffset: -50,
+              legendPosition: "middle",
+            }}
+            enableGridX={false}
+            enableGridY={false}
+            pointSize={10}
+            pointColor={{ theme: "background" }}
+            pointBorderWidth={2}
+            pointBorderColor={{ from: "serieColor" }}
+            pointLabelYOffset={-12}
+            useMesh={true}
+            legends={[
+              {
+                anchor: "top-right",
+                direction: "column",
+                justify: false,
+                translateX: 50,
+                translateY: 0,
+                itemsSpacing: 0,
+                itemDirection: "left-to-right",
+                itemWidth: 80,
+                itemHeight: 20,
+                itemOpacity: 0.75,
+                symbolSize: 12,
+                symbolShape: "circle",
+                symbolBorderColor: "rgba(0, 0, 0, .5)",
+                effects: [
+                  {
+                    on: "hover",
+                    style: {
+                      itemBackground: "rgba(0, 0, 0, .03)",
+                      itemOpacity: 1,
+                    },
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : (
+          <>Loading...</>
+        )}
+      </Box>
+    </Box>
+  );
+};
+export default Monthly;
+==================================================================================ForgotPassword===================================
+import React, { useState } from 'react';
+import { Form, Input, Button } from 'antd';
+import { UserOutlined,  } from '@ant-design/icons';
+import { Avatar, Box, CssBaseline,  Grid, Paper, } from '@mui/material';
+import logo from '../assets/lightLogo.png';
+import { useForgotPasswordMutation } from "state/api.js";
+const ForgotPassword = ({ history }) => {
+  const[email,setEmail] = useState("")
+  const [forgotPassword] = useForgotPasswordMutation();
+
+  const sendEmail = () => {
+    forgotPassword({email:email})
+    // .then(response=>console.log(response))
+  }
+  return (
+      <Grid container component="main" sx={{ height: '100vh' }}>
+        <CssBaseline />
+        <Grid
+          item
+          xs={false}
+          sm={4}
+          md={7}
+          sx={{
+            backgroundImage: 'linear-gradient(rgba(51, 176, 255, 0.5), rgba(51, 176, 255, 0.5)), url(https://source.unsplash.com/random/?lawfirm)',
+            backgroundRepeat: 'no-repeat',
+             backgroundColor: (t) =>
+              t.palette.mode === 'light' ? t.palette.grey[50] : t.palette.grey[900],
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+        <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square >
+          <Box
+            sx={{
+              flexDirection: 'column',
+              alignItems: 'center',
+              width: 500,
+              maxWidth: '100%',
+              mx: 'auto',
+              marginTop:'22%',
+              borderRadius:'1%',
+            }}
+          >
+              <Avatar alt="Remy Sharp" src={logo} sx={{ width: 275, height: 70,marginLeft: 14}} variant="square" />
+              <p className='input'>Please enter Emaili'd to reset your password</p>
+            <Form
+                name="normal_login"
+                className="login-form"
+                initialValues={{
+                  remember: true
+                }}
+              >
+                <Form.Item
+                  name="email"
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Please input your email!'
+                    },
+                    {
+                      type: 'email',
+                      message: 'Please enter a valid email address'
+                    }
+                  ]}
+                >
+                  <Input
+                    prefix={<UserOutlined className="site-form-item-icon1" />}
+                    placeholder="Email"
+                    id="email-input"
+                    size="large"
+                    onChange={(e)=>setEmail(e.target.value)}
+                  />
+                </Form.Item>
+                <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop:5
+                }}
+              >
+                <Button type="submit"
+                      htmlType="submit"
+                      className="login-form-button"
+                      textalign="center"
+                      onClick={sendEmail}
+                      >
+                  Reset
+                </Button>
+              </Box>
+              </Form>
+          </Box>
+        </Grid>
+      </Grid>
+  );
+};
+export default ForgotPassword;
+====================================================================Sessions====================================
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Card,
+  CardActions,
+  CardContent,
+  Collapse,
+  Button,
+  Typography,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
+import Header from "components/Header";
+import { useGetSessionsQuery,useSessionsMutation } from "state/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import {InfinitySpin } from "react-loader-spinner";
+const Product = ({_id,depositionOf,statusID,classType,meeting_required,role,started,finished}) => {
+  const theme = useTheme();
+  const [isExpanded, setIsExpanded] = useState(false);
+  function getBackgroundColor(value) {
+    if (value === 'Deposition') {
+      return '#FFF3E2'
+    }
+    else if (value === 'Arbitration') {
+      return '#FFE5CA'
+    } else if (value === 'WitnessPrep') {
+      return '#FA9884'
+    }else if (value === 'Mediation') {
+      return '#E74646'
+    }else{
+      return '#FCC8D1'
+    }
+  }
+  return (
+    <Card
+      sx={{
+        backgroundImage: "none",
+        backgroundColor: theme.palette.background.alt,
+        borderRadius: "0.55rem",
+      }}
+      style={{'backgroundColor':getBackgroundColor(classType)}}
+    >
+      <CardContent style={{'backgroundColor':getBackgroundColor(classType)}}>
+        <Typography variant="h5" component="div" color={theme.palette.primary[100]}>
+          {depositionOf}
+        </Typography>
+        <Typography sx={{ mb: "1.5rem" }} color={theme.palette.primary[100]}>
+         {classType}
+        </Typography>
+        <Typography sx={{ mb: "1.5rem" }} color={theme.palette.primary[100]}>
+         {meeting_required}
+        </Typography>
+        <Typography variant="body2" color={theme.palette.primary[100]} >{statusID}</Typography>
+      </CardContent>
+      <CardActions style={{'backgroundColor':getBackgroundColor(classType)}}>
+        <Button
+          variant="primary"
+          size="small"
+          onClick={() => setIsExpanded(!isExpanded)}
+          color={theme.palette.primary[100]}
+        >
+          See More
+        </Button>
+      </CardActions>
+      <Collapse
+        in={isExpanded}
+        timeout="auto"
+        unmountOnExit
+        sx={{
+          color: theme.palette.neutral[300],
+        }}
+      >
+        <CardContent style={{'backgroundColor':getBackgroundColor(classType)}}>
+          {/* <Typography color={theme.palette.primary[400]}>
+            Role: {role}
+          </Typography> */}
+          <Typography color={theme.palette.primary[100]}>
+            Started: {started}
+          </Typography>
+          <Typography color={theme.palette.primary[100]}>
+            Finished: {finished}
+          </Typography>
+        </CardContent>
+      </Collapse>
+    </Card>
+  );
+};
+const Sessions = () => {
+  const isNonMobile = useMediaQuery("(min-width: 1000px)");
+  const currentDate = new Date()
+  currentDate.setDate(currentDate.getDate()-2)
+  let dateString = currentDate.toISOString().split('T')[0]
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(dateString));
+  const { data } = useGetSessionsQuery();
+  const [sessions] = useSessionsMutation()
+  const [sessionData,setSessionData] = useState()
+  useEffect(()=>{
+    setSessionData(data)
+  },[data])
+  const handleSubmit=(date)=>{
+    setEndDate(date)
+    const fromDate = startDate.toISOString().split("T")[0];
+    const toDate = endDate.toISOString().split("T")[0];
+    sessions({fromDate,toDate}).then(result=>setSessionData(result.data))
+  }
+
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box display="flex" justifyContent="space-between">
+        <Header title="SESSIONS" subtitle="See your list of Sessions." />
+        <Box display="flex" justifyContent="flex-end">
+            <Box>
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+                />
+            </Box>
+            <Box>
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => handleSubmit(date)}
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                // minDate={startDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+              />
+            </Box>
+            {/* <button onClick={handleSubmit}>Click</button> */}
+          </Box>
+
+      </Box>
+      {sessionData ? (
+        <Box
+          mt="20px"
+          display="grid"
+          gridTemplateColumns="repeat(4, minmax(0, 1fr))"
+          justifyContent="space-between"
+          rowGap="20px"
+          columnGap="1.33%"
+          sx={{
+            "& > div": { gridColumn: isNonMobile ? undefined : "span 4" },
+          }}
+        >
+          {sessionData.map(
+            ({
+              _id,
+              depositionOf,
+              statusID,
+              classType,
+              meeting_required,
+              role,
+              started,
+              finished
+            }) => (
+              <Product
+                key={_id}
+                depositionOf={depositionOf}
+                statusID={statusID}
+                classType={classType}
+                meeting_required={meeting_required}
+                role={role}
+                started={started}
+                finished={finished}
+              />
+            )
+          )}
+        </Box>
+      ) : (
+        // <>Loading...</>
+        <Box textAlign="center" justifySelf="center"><InfinitySpin 
+        width='400'
+        color="#4fa94d"
+      /></Box>
+      )}
+    </Box>
+  );
+};
+export default Sessions;
+=====================================================================================ParsedLog=========================================================
+import React, { useEffect, useState } from "react";
+import { Box, useTheme } from "@mui/material";
+import { useGetParsedLogsQuery,useParsedLogsMutation } from "state/api";
+import Header from "components/Header";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+//import { mockDataParsedLogs } from "../../data/mockData";
+
+const ParsedLogs = () => {
+  const[startDate,setStartDate]=useState(new Date())
+  const[endDate,setEndDate]=useState(new Date())
+  const theme = useTheme();
+  const { data, isLoading } = useGetParsedLogsQuery();
+  const [parsedData,setParsedData] = useState()
+  useEffect(()=>{
+    setParsedData(data)
+  },[data])
+  const [parsedLogs] = useParsedLogsMutation()
+  const handleSubmit=(date)=>{
+    setEndDate(date)
+    const fromDate = startDate.toISOString().split("T")[0];
+    const toDate = endDate.toISOString().split("T")[0];
+    parsedLogs({fromDate,toDate}).then(result=>setParsedData(result.data))
+  }
+
+  const columns = [
+    {
+      field: "id",
+      headerName: "id",
+      flex: 1,
+    },
+    {
+      field: "referenceid",
+      headerName: "referenceid",
+      flex: 1,
+    },
+    {
+      field: "username",
+      headerName: "Username",
+      flex: 0.5,
+    },
+    {
+      field: "operationname",
+      headerName: "operationname",
+      flex: 1,
+    },
+    {
+      field: "direction",
+      headerName: "direction",
+      flex: 0.5,      
+    },
+    {
+      field: "fromserver",
+      headerName: "fromserver",
+      flex: 0.4,
+    },
+    {
+      field: "toserver",
+      headerName: "toserver",
+      flex: 1,
+    },
+    {
+      field: "status",
+      headerName: "status",
+      flex: 0.5,
+    },
+    {
+      field: "eventtimestamp",
+      headerName: "eventtimestamp",
+      flex: 0.5,
+    },{
+      field: "logmessage",
+      headerName: "logmessage",
+      flex: 0.5,
+    },
+  ];
+
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box display="flex" justifyContent="space-between">
+        <Header title="PARSEDLOGS" subtitle="List of ParsedLogs" />
+        <Box display="flex" justifyContent="flex-end">
+          <Box>
+            <DatePicker
+              selected={startDate}
+              onChange={(date) => setStartDate(date)}
+              selectsStart
+              startDate={startDate}
+              endDate={endDate}
+              dateFormat={"yyyy-MM-dd"}
+              onKeyDown={(event)=>event.preventDefault()}
+            />
+          </Box>
+          <Box>
+            <DatePicker
+              selected={endDate}
+              onChange={(date) => handleSubmit(date)}
+              selectsEnd
+              startDate={startDate}
+              endDate={endDate}
+              dateFormat={"yyyy-MM-dd"}
+              onKeyDown={(event)=>event.preventDefault()}
+            />
+          </Box>
+        </Box>
+      </Box>
+      <Box
+        mt="40px"
+        height="75vh"
+        sx={{
+          "& .MuiDataGrid-root": {
+            border: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            borderBottom: "none",
+          },
+          "& .MuiDataGrid-columnHeaders": {
+            backgroundColor: theme.palette.background.alt,
+            color: theme.palette.secondary[100],
+            borderBottom: "none",
+          },
+          "& .MuiDataGrid-virtualScroller": {
+            backgroundColor: theme.palette.primary.light,
+          },
+          "& .MuiDataGrid-footerContainer": {
+            backgroundColor: theme.palette.background.alt,
+            color: theme.palette.secondary[100],
+            borderTop: "none",
+          },
+          "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
+            color: `${theme.palette.secondary[200]} !important`,
+          },
+        }}
+      >
+        <DataGrid
+          loading={isLoading || !parsedData}
+          getRowId={(row) => row._id}
+          rows={parsedData || []}
+          columns={columns}
+          components={{ Toolbar: GridToolbar }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
+export default ParsedLogs;
+============================================================================================Session pagination code==============================================================
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Card,
+  CardActions,
+  CardContent,
+  Collapse,
+  Button,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  Pagination,
+  Stack,
+} from "@mui/material";
+import Header from "components/Header";
+import { useGetSessionsQuery,useSessionsMutation } from "state/api";
+import DatePicker from "react-datepicker";
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined';
+import VideocamOffOutlinedIcon from '@mui/icons-material/VideocamOffOutlined';
+import "react-datepicker/dist/react-datepicker.css";
+import {InfinitySpin } from "react-loader-spinner";
+import { Doughnut, Pie } from 'react-chartjs-2'
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { date } from "yup";
+
+const Product = ({_id,depositionOf,statusID,classType,meeting_required,role,started,finished,totalUsers,Members,Witness,TemporaryWitness,
+  WitnessMember,Guest,ID}) => {
+  const theme = useTheme();
+  const [isExpanded, setIsExpanded] = useState(false);
+  function getBackgroundColor(value) {
+    if (value === 'Deposition') {
+      return '#62CDFF'
+    }
+    else if (value === 'Arbitration') {
+      return '#97DEFF'
+    } else if (value === 'WitnessPrep') {
+      return '#ADA2FF'
+    }else if (value === 'Mediation') {
+      return '#E74646'
+    }else{
+      return '#C9EEFF'
+    }
+  }
+  ChartJS.register(ArcElement, Tooltip, Legend);
+  const data = {
+    labels: ['M', 'W', 'TW', 'W', 'G'],
+    datasets: [
+      {
+        label: [],
+        data: [Members, Witness, TemporaryWitness, WitnessMember, Guest],
+        backgroundColor: [
+          '#8294C4',
+          '#ACB1D6',
+          '#DBDFEA',
+          '#FFEAD2',
+          '#E76161',
+        ],
+        borderColor: [
+          '#8294C4',
+          '#ACB1D6',
+          '#DBDFEA',
+          '#FFEAD2',
+          '#E76161',
+        ],
+        skipNull:true
+        // borderWidth: (a, b, c) => (a.datasets.data[a.dataIndex] === 0 ? 0 : 1)
+      },
+    ],
+  };
+  const options = {
+    plugins: {
+      tooltips: {
+        yAlign: "bottom"
+      },legend: {
+        position: 'right',
+        labels: {
+          usePointStyle: true,
+        },
+      },
+      // datalabels: {
+      //   display: false,
+      //   color: "black",
+      //   formatter: Math.round,
+      //   anchor: "end",
+      //   offset: -20,
+      //   align: "start"
+      // }
+    },
+    legend: {
+      display: true
+    }
+  };
+  return (
+    <Card
+      sx={{
+        backgroundImage: "none",
+        backgroundColor: theme.palette.background.alt,
+        borderRadius: "0.55rem",
+      }}
+    >
+      <CardContent>
+        <Box sx={{ mb: "1.5rem" }}   display="flex" justifyContent="space-between" >
+          <Typography style={{'color':getBackgroundColor(classType)}} variant="h4" component="div">{depositionOf}</Typography>
+         {meeting_required === "1"? <VideocamOutlinedIcon sx={{color:"red"}}/>: <VideocamOffOutlinedIcon sx={{color:"red"}}/>}
+        </Box>
+        <Box color={theme.palette.primary[100]} display="flex"  justifyContent="space-between" alignItems="center">
+          <Stack >
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>{ID}</Typography>
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>{classType}</Typography>
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>Users:{totalUsers}</Typography>
+            <Typography sx={{ mb: "1.2rem" }} color={theme.palette.primary[100]}>{statusID}</Typography>         
+          </Stack>
+          <Box style={{width:200,height:'200px',}}>
+            <Pie data={data}  options={options}/>
+          </Box>
+        </Box>
+      </CardContent>
+      <CardActions >
+        <Button
+          variant="primary"
+          size="small"
+          onClick={() => setIsExpanded(!isExpanded)}
+          color={theme.palette.primary[100]}
+        >
+          See More
+        </Button>
+      </CardActions>
+      <Collapse
+        in={isExpanded}
+        timeout="auto"
+        unmountOnExit
+        sx={{
+          color: theme.palette.neutral[300],
+        }}
+      >
+        <CardContent >
+          {/* <Typography color={theme.palette.primary[400]}>
+            Role: {role}
+          </Typography> */}
+          <Typography color={theme.palette.primary[100]}>
+            Started: {started}
+          </Typography>
+          <Typography color={theme.palette.primary[100]}>
+            Finished: {finished}
+          </Typography>
+        </CardContent>
+      </Collapse>
+    </Card>
+  );
+};
+const Sessions = () => {
+  const isNonMobile = useMediaQuery("(min-width: 1000px)");
+  const currentDate = new Date()
+  currentDate.setDate(currentDate.getDate()-2)
+  let dateString = currentDate.toISOString().split('T')[0]
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(dateString));
+  const { data } = useGetSessionsQuery();
+  // const [users,setUsers] = useState(data.slice(0,10))
+  const userPerPage = 10
+  const count = Math.ceil(data.length/userPerPage)
+  console.log(count);
+  const [pageNumber,setPageNumer] = useState(1)
+  const pagesVisited = (pageNumber-1) *userPerPage
+
+  const displayUsers = data.slice(pagesVisited, pagesVisited+userPerPage).map(({
+    _id,
+    depositionOf,
+    statusID,
+    classType,
+    meeting_required,
+    role,
+    started,
+    finished,
+    totalUsers,
+    Members,
+    Witness,
+    TemporaryWitness,
+    WitnessMember,
+    Guest,
+    ID
+  })=>(
+    <Product
+      key={_id}
+      depositionOf={depositionOf}
+      statusID={statusID}
+      classType={classType}
+      meeting_required={meeting_required}
+      role={role}
+      started={started}
+      finished={finished}
+      totalUsers={totalUsers}                
+      Members={Members}                
+      Witness={Witness}                
+      TemporaryWitness={TemporaryWitness}                
+      WitnessMember={WitnessMember}                
+      Guest={Guest}                
+      ID={ID}                
+    />
+  ))
+  // localStorage.setItem("sessionData",JSON.stringify(data));
+
+  useEffect(() => {
+    // window.onbeforeunload = function () {return false;}
+    // const sessions = localStorage.getItem("sessionData");
+    // console.log("sessions from storage: ", sessions.length);
+    // console.log("sessions Length from storage: ", sessions);
+
+    }, []);
+
+
+  // const [sessions] = useSessionsMutation()
+  // const [sessionData,setSessionData] = useState()
+  // useEffect(()=>{
+  //   setSessionData(data)
+  // },[data])
+  const handleSubmit=(date)=>{
+    setEndDate(date)
+    const fromDate = startDate.toISOString().split("T")[0];
+    const toDate = endDate.toISOString().split("T")[0];
+    // sessions({fromDate,toDate}).then(result=>setSessionData(result.data))
+  }
+  // const [page,setPage] = useState(1)
+  // const count = sessionData
+ 
+  const handleChange = (event, value) => {
+    // console.log(value);
+    setPageNumer(value);
+  };
+  return (
+    <Box m="1.5rem 2.5rem">
+      <Box display="flex" justifyContent="space-between">
+        <Header title="SESSIONS" subtitle="See your list of Sessions." />
+        <Box display="flex" justifyContent="flex-end">
+            <Box>
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+                />
+            </Box>
+            <Box>
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => handleSubmit(date)}
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                // minDate={startDate}
+                dateFormat={"yyyy-MM-dd"}
+                onKeyDown={(event)=>event.preventDefault()}
+              />
+            </Box>
+            {/* <button onClick={handleSubmit}>Click</button> */}
+          </Box>
+
+      </Box>
+      {data ? (
+        <Box
+          mt="20px"
+          display="grid"
+          gridTemplateColumns="repeat(4, minmax(0, 1fr))"
+          justifyContent="space-between"
+          rowGap="20px"
+          columnGap="1.33%"
+          sx={{
+            "& > div": { gridColumn: isNonMobile ? undefined : "span 4" },
+          }}
+        >
+          {displayUsers}
+          {/* {data.map(
+            ({
+              _id,
+              depositionOf,
+              statusID,
+              classType,
+              meeting_required,
+              role,
+              started,
+              finished,
+              totalUsers,
+              Members,
+              Witness,
+              TemporaryWitness,
+              WitnessMember,
+              Guest,
+              ID
+            }) => (
+              <Product
+                key={_id}
+                depositionOf={depositionOf}
+                statusID={statusID}
+                classType={classType}
+                meeting_required={meeting_required}
+                role={role}
+                started={started}
+                finished={finished}
+                totalUsers={totalUsers}                
+                Members={Members}                
+                Witness={Witness}                
+                TemporaryWitness={TemporaryWitness}                
+                WitnessMember={WitnessMember}                
+                Guest={Guest}                
+                ID={ID}                
+              />
+            )
+          )} */}
+          <Pagination count={count} onChange={handleChange}/>
+        </Box>
+      ) : (
+        // <>Loading...</>
+        <Box textAlign="center" justifySelf="center"><InfinitySpin 
+        width='400'
+        color="#4fa94d"
+      /></Box>
+      )}
+    </Box>
+  );
+};
+export default Sessions;
